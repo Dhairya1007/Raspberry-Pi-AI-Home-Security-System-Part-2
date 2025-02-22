@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+        }
+
+        .video-section {
+            flex: 2;
+        }
+
+        .detection-section {
+            flex: 1;
+            text-align: left;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        .video-container {
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .alert {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .detection-info {
+            margin-top: 15px;
+        }
+
+        .detection-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .detection-table th,
+        .detection-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .detection-table th {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Security Monitoring System</h1>
+        <div class="content-wrapper">
+            <div class="video-section">
+                <h2>Live Video Stream</h2>
+                <div class="video-container">
+                    <img src="{{ url_for('video_feed') }}" alt="Video Stream">
+                </div>
+                <div class="status">
+                    <p>Streaming from UDP source (127.0.0.1:5010)</p>
+                </div>
+            </div>
+            <div class="detection-section">
+                <h2>Detection Information</h2>
+                <div id="alertBox" class="alert"></div>
+                <div class="detection-info">
+                    <p><strong>Last Update:</strong> <span id="timestamp">-</span></p>
+                    <p><strong>Location:</strong> <span id="location">-</span></p>
+                    <p><strong>Total Persons:</strong> <span id="totalPersons">0</span></p>
+                    <h3>Detection Details</h3>
+                    <table class="detection-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detectionTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateDetectionInfo() {
+            fetch('/get_detection')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.timestamp) {
+                        document.getElementById('timestamp').textContent = data.timestamp;
+                        document.getElementById('location').textContent = data.location;
+                        document.getElementById('totalPersons').textContent = data.total_persons;
+
+                        const tableBody = document.getElementById('detectionTableBody');
+                        tableBody.innerHTML = '';
+                        data.detections.forEach(detection => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${detection.id}</td>
+                                <td>${detection.confidence.toFixed(2)}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+
+                        // Show alert if persons detected
+                        const alertBox = document.getElementById('alertBox');
+                        if (data.total_persons > 0) {
+                            alertBox.style.display = 'block';
+                            alertBox.textContent = `Alert: ${data.total_persons} person(s) detected!`;
+                        } else {
+                            alertBox.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching detection data:', error));
+        }
+
+        // Update detection info every second
+        setInterval(updateDetectionInfo, 1000);
+    </script>
+</body>
+
+</html>
